@@ -1,182 +1,111 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>СколькоСтоит</title>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <title>СколькоСтоит — AI Поиск</title>
   <style>
-    :root{ --maxw:640px; --accent:#ff5a5f; }
-    html,body{height:100%;margin:0}
-    body{
-      background:#000;
-      color:#fff;
-      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      padding:20px;
+    body {
+      margin: 0;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 15vh;
     }
-    .wrap{
-      width:100%;
-      max-width:var(--maxw);
-      text-align:center;
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #00ffcc;
     }
-    h1.title{
-      margin:0 0 18px 0;
-      font-size:36px;
-      letter-spacing:0.4px;
-      font-weight:700;
-      color:#fff;
+    #search-box {
+      width: 400px;
+      max-width: 90%;
+      padding: 12px;
+      font-size: 18px;
+      border: none;
+      border-radius: 5px;
+      outline: none;
     }
-    p.lead{ margin:8px 0 20px; color:#ccc; }
-    form{ margin:0; }
-    .search-wrap{
-      display:flex; gap:10px; align-items:center;
-      justify-content:center;
+    #results {
+      margin-top: 30px;
+      max-width: 800px;
+      width: 90%;
     }
-    input.search{
-      width:100%;
-      box-sizing:border-box;
-      padding:14px 16px;
-      font-size:18px;
-      border-radius:12px;
-      border:0;
-      outline:0;
-      background:#fff;
-      color:#000;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      transition: transform .12s ease, box-shadow .12s ease;
+    .res {
+      background: #1a1a1a;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
     }
-    input.search:focus{ transform: translateY(-2px); box-shadow: 0 18px 36px rgba(0,0,0,0.7); }
-    button.clear{
-      background:transparent; border:0; color:#999; cursor:pointer; font-size:14px;
+    .res a {
+      color: #00ffcc;
+      font-size: 20px;
+      text-decoration: none;
     }
-    .results{
-      margin-top:18px;
-      text-align:left;
+    .res a:hover {
+      text-decoration: underline;
     }
-    .res{
-      background:#fff;
-      color:#000;
-      padding:12px;
-      border-radius:8px;
-      margin-bottom:10px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    .res p {
+      margin: 6px 0 0;
+      color: #ddd;
+      font-size: 15px;
     }
-    .r-title{ font-weight:600; margin-bottom:6px; }
-    .r-text{ font-size:14px; color:#111; line-height:1.35; }
-    .r-score{ font-size:12px; color:#444; margin-top:8px; }
-    .no{ color:#bbb; font-size:14px; margin-top:12px; text-align:center; }
-    footer{ margin-top:22px; font-size:12px; color:#666; text-align:center; }
-    .hint{ font-size:13px; color:#bbb; margin-top:10px }
-    @media (max-width:520px){
-      h1.title{ font-size:26px }
-      input.search{ padding:12px; font-size:16px }
+    .no {
+      color: #888;
+      font-style: italic;
     }
   </style>
 </head>
 <body>
-  <div class="wrap" role="main" aria-labelledby="site-title">
-    <h1 id="site-title" class="title">СколькоСтоит</h1>
-    <p class="lead">Быстрый бесплатный поисковик — прототип. Введите запрос и нажмите Enter.</p>
-
-    <form id="f" onsubmit="return false;" aria-label="Search form">
-      <div class="search-wrap">
-        <input id="q" class="search" type="search" placeholder="Искать..." autocomplete="off" aria-label="Поле поиска" />
-      </div>
-    </form>
-
-    <div id="results" class="results" aria-live="polite"></div>
-    <div class="hint">Примечание: это бесплатный клиентский поисковик.</div>
-    <footer>© <span id="year"></span> СколькоСтоит</footer>
-  </div>
+  <h1>СколькоСтоит</h1>
+  <form onsubmit="event.preventDefault(); doSearch();">
+    <input id="search-box" type="text" placeholder="Введите запрос..." />
+  </form>
+  <div id="results"></div>
 
   <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+    async function doSearch() {
+      const q = document.getElementById("search-box").value.trim();
+      if (!q) return;
 
-    // --- Примеры документов (можешь заменить на свои) ---
-    const docs = [
-      {id: '1', title: 'Как варить кофе', text: 'Чтобы сварить вкусный кофе, используйте свежие зерна, точный помол и чистую воду. Пропорции и температура влияют на вкус.'},
-      {id: '2', title: 'Рецепт классического борща', text: 'Борщ готовится на мясном бульоне со свёклой, капустой и томатной пастой. Подаётся со сметаной.'},
-      {id: '3', title: 'Путеводитель по Токио', text: 'Токио — огромный мегаполис: Сибуя, Синдзюку и Акихабара — лучшие районы для первого визита.'},
-      {id: '4', title: 'Как сделать сайт', text: 'Создание сайта включает дизайн, верстку и выбор хостинга. Можно начать с простой статической страницы.'},
-      {id: '5', title: 'Советы по экономии', text: 'Планируй бюджет, сравнивай цены и используй скидки — это помогает экономить на повседневных покупках.'},
-      {id: '6', title: 'Как учить язык', text: 'Регулярность важнее длительности. Практикуй разговор, слушай носителей и повторяй новые слова ежедневно.'},
-      {id: '7', title: 'Покупка бытовой техники', text: 'Перед покупкой читай отзывы, сравнивай энергоэффективность и гарантию — это экономит деньги в долгую.'},
-      {id: '8', title: 'Как читать контракт', text: 'Внимательно читай условия, сроки и штрафы. При сомнениях спроси юриста или консультанта.'},
-      {id: '9', title: 'Как экономить на поездках', text: 'Бронируй заранее, сравнивай цены и используй приложения для поиска скидок.'},
-      {id: '10', title: 'Здоровый сон', text: 'Регулярный режим сна, затемнение комнаты и отказ от экрана перед сном улучшат качество отдыха.'},
-      {id: '11', title: 'Планирование бюджета', text: 'Записывай доходы и расходы, выделяй на сбережения минимум 10% от дохода.'},
-      {id: '12', title: 'Выбор ноутбука', text: 'Определи задачи (работа, игры, графика) и выбирай параметры — процессор, RAM, накопитель — под эти задачи.'}
-    ];
+      const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
 
-    // --- Простая клиентская "эмбеддинг"-функция (демо) ---
-    function embed(text){
-      text = (text || '').toLowerCase().trim();
-      const S = text.slice(0, 512);
-      const V = new Array(128).fill(0);
-      for (let i = 0; i < S.length; i++){
-        const c = S.charCodeAt(i);
-        V[i % 128] += (c % 97) + 1;
+      document.getElementById("results").innerHTML = "<div class='no'>Ищу...</div>";
+
+      try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        showResults(data);
+      } catch (err) {
+        document.getElementById("results").innerHTML = "<div class='no'>Ошибка загрузки</div>";
       }
-      let sum = 0;
-      for (let i = 0; i < V.length; i++) sum += V[i]*V[i];
-      const norm = Math.sqrt(sum) || 1;
-      for (let i = 0; i < V.length; i++) V[i] = V[i] / norm;
-      return V;
     }
 
-    function cosine(a,b){
-      let s = 0;
-      for (let i = 0; i < a.length; i++) s += (a[i] || 0) * (b[i] || 0);
-      return s;
-    }
+    function showResults(data) {
+      const box = document.getElementById("results");
+      let html = "";
 
-    const docsEmb = docs.map(d => ({...d, emb: embed(d.title + ' ' + d.text)}));
-
-    const qInput = document.getElementById('q');
-    const resultsBox = document.getElementById('results');
-
-    qInput.addEventListener('keydown', (e)=>{
-      if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
-      if (e.key === 'Escape') { clearResults(); qInput.blur(); }
-    });
-
-    function doSearch(){
-      const q = qInput.value.trim();
-      if (!q) { clearResults(); return; }
-      const qEmb = embed(q);
-      const scored = docsEmb.map(d => ({ id: d.id, title: d.title, text: d.text, score: cosine(qEmb, d.emb) }));
-      scored.sort((a,b)=>b.score - a.score);
-      const top = scored.slice(0,6);
-      showResults(top);
-    }
-
-    function showResults(arr){
-      if (!arr || arr.length === 0) { resultsBox.innerHTML = '<div class="no">Ничего не найдено</div>'; return; }
-      let html = '';
-      for (const r of arr){
+      if (data.AbstractText) {
         html += `<div class="res">
-                  <div class="r-title">${esc(r.title)}</div>
-                  <div class="r-text">${esc(r.text)}</div>
-                  <div class="r-score">relevance: ${r.score.toFixed(3)}</div>
-                 </div>`;
+          <a href="${data.AbstractURL}" target="_blank">${data.Heading}</a>
+          <p>${data.AbstractText}</p>
+        </div>`;
       }
-      resultsBox.innerHTML = html;
-      // прокрутить немного вниз на мобильных устройствах
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
+      if (data.RelatedTopics && data.RelatedTopics.length) {
+        data.RelatedTopics.forEach(r => {
+          if (r.Text && r.FirstURL) {
+            html += `<div class="res">
+              <a href="${r.FirstURL}" target="_blank">${r.Text}</a>
+            </div>`;
+          }
+        });
+      }
+
+      box.innerHTML = html || "<div class='no'>Ничего не найдено</div>";
     }
-
-    function clearResults(){ resultsBox.innerHTML = ''; }
-
-    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-    // Подсказка: как заменить документы
-    // Открой index.html → найди массив `docs` и отредактируй записи {id, title, text}
   </script>
 </body>
 </html>
