@@ -12,21 +12,41 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 15vh;
+      padding-top: 12vh;
     }
     h1 {
       font-size: 2.5em;
       margin-bottom: 20px;
       color: #00ffcc;
+      text-align: center;
+    }
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      width: 90%;
+      max-width: 500px;
     }
     #search-box {
-      width: 400px;
-      max-width: 90%;
+      flex: 1;
       padding: 12px;
       font-size: 18px;
       border: none;
       border-radius: 5px;
       outline: none;
+    }
+    #search-btn {
+      padding: 12px 18px;
+      font-size: 18px;
+      border: none;
+      border-radius: 5px;
+      background: #00ffcc;
+      color: black;
+      cursor: pointer;
+    }
+    #search-btn:hover {
+      background: #00cc99;
     }
     #results {
       margin-top: 30px;
@@ -55,13 +75,42 @@
     .no {
       color: #888;
       font-style: italic;
+      text-align: center;
+    }
+
+    /* Лоадер */
+    .loader {
+      display: inline-block;
+    }
+    .loader span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin: 0 2px;
+      background: #00ffcc;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .loader span:nth-child(1) { animation-delay: -0.32s; }
+    .loader span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    mark {
+      background: #00ffcc;
+      color: black;
+      padding: 0 2px;
     }
   </style>
 </head>
 <body>
   <h1>СколькоСтоит</h1>
   <form onsubmit="event.preventDefault(); doSearch();">
-    <input id="search-box" type="text" placeholder="Введите запрос..." />
+    <input id="search-box" type="text" placeholder="Введите запрос..." autofocus />
+    <button id="search-btn" type="submit">Поиск</button>
   </form>
   <div id="results"></div>
 
@@ -70,27 +119,34 @@
       const q = document.getElementById("search-box").value.trim();
       if (!q) return;
 
-      const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
+      const url = https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1;
 
-      document.getElementById("results").innerHTML = "<div class='no'>Ищу...</div>";
+      document.getElementById("results").innerHTML =
+        "<div class='no loader'><span></span><span></span><span></span></div>";
 
       try {
         const resp = await fetch(url);
         const data = await resp.json();
-        showResults(data);
+        showResults(data, q);
       } catch (err) {
         document.getElementById("results").innerHTML = "<div class='no'>Ошибка загрузки</div>";
       }
     }
 
-    function showResults(data) {
+    function highlight(text, keyword) {
+      if (!text) return "";
+      const regex = new RegExp("(" + keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+      return text.replace(regex, "<mark>$1</mark>");
+    }
+
+    function showResults(data, keyword) {
       const box = document.getElementById("results");
       let html = "";
 
       if (data.AbstractText) {
         html += `<div class="res">
-          <a href="${data.AbstractURL}" target="_blank">${data.Heading}</a>
-          <p>${data.AbstractText}</p>
+          <a href="${data.AbstractURL}" target="_blank">${highlight(data.Heading, keyword)}</a>
+          <p>${highlight(data.AbstractText, keyword)}</p>
         </div>`;
       }
 
@@ -98,7 +154,7 @@
         data.RelatedTopics.forEach(r => {
           if (r.Text && r.FirstURL) {
             html += `<div class="res">
-              <a href="${r.FirstURL}" target="_blank">${r.Text}</a>
+              <a href="${r.FirstURL}" target="_blank">${highlight(r.Text, keyword)}</a>
             </div>`;
           }
         });
